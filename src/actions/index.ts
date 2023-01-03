@@ -17,20 +17,33 @@ export class ActionsController {
   ) => {
     const chatId = ctx.message?.chat.id
     const prev = chatId ? this.conversations.get(chatId) : undefined
+    let intId;
 
     try {
+      if(chatId) {
+        intId = setInterval(() => {
+          ctx.telegram.sendChatAction(chatId, 'typing')
+        }, 3000)
+      }
+      
       const { 
         response, 
         messageId: parentMessageId, 
         conversationId 
       } = await this.chatApi.sendMessage(question, prev)
 
+      clearInterval(intId)
+
       chatId && this.conversations.set(chatId, { parentMessageId, conversationId, response })
 
-      response && ctx.chat && ctx.telegram.editMessageText(ctx.chat.id, message_id, undefined, response)
+      response && ctx.chat && ctx.telegram.editMessageText(ctx.chat.id, message_id, undefined, response, {
+        parse_mode: "Markdown",
+      })
 
     } catch (e) {
       ctx.chat && ctx.telegram.editMessageText(ctx.chat.id, message_id, undefined, 'Извините. Что-то пошло не так.')
+    } finally {
+      clearInterval(intId)
     }
   }
 
