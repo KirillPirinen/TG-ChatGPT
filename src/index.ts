@@ -14,12 +14,14 @@ bot.catch((err) => console.log('Error: ', err))
 const chatGPT = new ChatGPTAPIBrowser({
   email: process.env.OPENAI_EMAIL,
   password: process.env.OPENAI_PASSWORD,
-  minimize: true
+  nopechaKey: process.env.NOPECHA_KEY
 })
 
 const { onResetThread, onQuery } = new ActionsController(chatGPT)
 
 const queue = new Queue(20)
+
+let attempts = 0
 
 const init = async () => {
   try {
@@ -30,15 +32,14 @@ const init = async () => {
     bot.use(async (ctx, next) => {
       //@ts-ignore
       const chatId = ctx.update.message?.chat.id
-      const currentUserQueryCount = queue.getCountByInitiator(chatId)
 
-      if(currentUserQueryCount > 3) {
+      if(queue.getCountByInitiator(chatId) > 3) {
         return ctx.reply(TextResolver.maxQuery, {
           reply_to_message_id: ctx.message?.message_id,
         })
       }
       
-      next()
+      return next()
     })
 
     bot.command('new', ctx => {
@@ -51,7 +52,7 @@ const init = async () => {
 
       if(question) {
         const currentQuery = queue.count
-        
+
         const { message_id } = await ctx.reply(TextResolver.query(currentQuery), {
           reply_to_message_id: ctx.message?.message_id,
         })
@@ -81,6 +82,11 @@ const init = async () => {
 
   } catch (e) {
     console.log(e)
+    if(attempts < 10) {
+      attempts++
+
+      setTimeout(init, 5000)
+    }
   }
 }
 
