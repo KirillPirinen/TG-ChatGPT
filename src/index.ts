@@ -9,14 +9,17 @@ dotenv.config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+bot.catch((err) => console.log('Error: ', err))
+
 const chatGPT = new ChatGPTAPIBrowser({
   email: process.env.OPENAI_EMAIL,
   password: process.env.OPENAI_PASSWORD,
+  minimize: true
 })
 
 const { onResetThread, onQuery } = new ActionsController(chatGPT)
 
-const queue = new Queue()
+const queue = new Queue(20)
 
 const init = async () => {
   try {
@@ -24,12 +27,27 @@ const init = async () => {
 
     bot.command('start', ctx => ctx.reply(TextResolver.welcome));
 
+    bot.use(async (ctx, next) => {
+      //@ts-ignore
+      const chatId = ctx.update.message?.chat.id
+      const currentUserQueryCount = queue.getCountByInitiator(chatId)
+
+      if(currentUserQueryCount > 3) {
+        return ctx.reply(TextResolver.maxQuery, {
+          reply_to_message_id: ctx.message?.message_id,
+        })
+      }
+      
+      next()
+    })
+
     bot.command('new', ctx => {
-      queue.add(() => onResetThread(ctx))
+      queue.add({ cb: () => onResetThread(ctx) })
     });
 
     bot.on(message('text'), async ctx => {
       const question = ctx?.update.message?.text
+      const chatId = ctx.chat.id
 
       if(question) {
         const currentQuery = queue.count
@@ -44,7 +62,7 @@ const init = async () => {
           
           const onDecrement = async () => {
 
-            await ctx.telegram.editMessageText(ctx.chat.id, message_id, undefined, TextResolver.query(--msgPos))
+            await ctx.telegram.editMessageText(chatId, message_id, undefined, TextResolver.query(--msgPos))
 
             if (!msgPos) {
               queue.removeListener(queue.events.decrement, onDecrement)
@@ -55,7 +73,7 @@ const init = async () => {
 
         }
 
-        queue.add(() => onQuery(question, ctx, message_id))
+        queue.add({ initiator: chatId, cb: () => onQuery(question, ctx, message_id) })
       }
     });
 
