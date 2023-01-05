@@ -15,7 +15,7 @@ bot.catch((err) => logger.error('error :', err))
 const chatGPT = new ChatGPTAPIBrowser({
   email: process.env.OPENAI_EMAIL,
   password: process.env.OPENAI_PASSWORD,
-  //nopechaKey: process.env.NOPECHA_KEY
+  nopechaKey: process.env.NOPECHA_KEY
 })
 
 const { onResetThread, onQuery } = new ActionsController(chatGPT)
