@@ -1,4 +1,5 @@
 FROM node:18.4.0
+WORKDIR /app
 EXPOSE 3000
 COPY ./ ./
 RUN wget -qO - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg && \
