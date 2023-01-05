@@ -1,11 +1,12 @@
 import { Console } from 'console';
 import fs from 'fs';
+import path from 'path';
 
 const postfix = new Date().toDateString()
 
 const customConsole = new Console({
-  stdout: fs.createWriteStream(`${process.env.PWD}/logs/info_${postfix}.txt`, { flags: 'a' }),
-  stderr: fs.createWriteStream(`${process.env.PWD}/logs/errors_${postfix}.txt`, { flags: 'a' }),
+  stdout: fs.createWriteStream(path.normalize(`logs/info_${postfix}.txt`), { flags: 'a' }),
+  stderr: fs.createWriteStream(path.normalize(`logs/errors_${postfix}.txt`), { flags: 'a' }),
 });
 
 export const logger = {
