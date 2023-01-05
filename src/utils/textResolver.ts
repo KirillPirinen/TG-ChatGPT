@@ -5,3 +5,10 @@ export const TextResolver = {
   query: (currentQuery: number) => currentQuery ? `В очереди ${currentQuery} ${plural(currentQuery, 'запрос', 'запроса', 'запросов')}. Ожидайте.` : `🤔`,
   maxQuery: `Максимальное количество одновременных запросов: 3. Подождите завершения`,
 }
+
+export const Errors: Record<string | number, string> = {
+  429: 'Превышен общий лимит сообщений в час, блок со стороны Chat-GPT. Попробуйте позже',
+  default: 'Извините. Что-то пошло не так.'
+}
+
+export const ErrorResolver = (code: string | number) => Errors[code] || Errors.default

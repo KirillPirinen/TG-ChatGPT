@@ -1,18 +1,21 @@
 import { ChatGPTAPIBrowser } from 'chatgpt'
 import * as dotenv from 'dotenv'
-import { Queue, TextResolver } from './utils/index.js';
+import { Queue, TextResolver, logger } from './utils/index.js';
 import { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters'
 import { ActionsController } from './actions/index.js';
+import { exec } from 'child_process';
 
 dotenv.config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+bot.catch((err) => logger.error('error :', err))
+
 const chatGPT = new ChatGPTAPIBrowser({
   email: process.env.OPENAI_EMAIL,
   password: process.env.OPENAI_PASSWORD,
-  nopechaKey: process.env.NOPECHA_KEY
+  //nopechaKey: process.env.NOPECHA_KEY
 })
 
 const { onResetThread, onQuery } = new ActionsController(chatGPT)
@@ -22,22 +25,30 @@ const queue = new Queue(20)
 let attempts = 0
 
 const init = async () => {
+  logger.log('init')
   try {
     await chatGPT.initSession()
 
     bot.command('start', ctx => ctx.reply(TextResolver.welcome));
+
+    bot.command('restart', async (ctx, next) => {
+      if(process.env.ADMIN_ID === String(ctx.from.id)) {
+        return exec('pm2 restart index')
+      }
+      return await next()
+    });
 
     bot.use(async (ctx, next) => {
       //@ts-ignore
       const chatId = ctx.update.message?.chat.id
 
       if(queue.getCountByInitiator(chatId) > 3) {
-        return ctx.reply(TextResolver.maxQuery, {
+        return await ctx.reply(TextResolver.maxQuery, {
           reply_to_message_id: ctx.message?.message_id,
         })
       }
       
-      return next()
+      return await next()
     })
 
     bot.command('new', ctx => {
@@ -48,9 +59,11 @@ const init = async () => {
       const question = ctx?.update.message?.text
       const chatId = ctx.chat.id
 
+      logger.log('message', chatId)
+
       if(question) {
         try {
-          const currentQuery = queue.count
+        const currentQuery = queue.count
 
         const { message_id } = await ctx.reply(TextResolver.query(currentQuery), {
           reply_to_message_id: ctx.message?.message_id,
@@ -61,7 +74,6 @@ const init = async () => {
           let msgPos = currentQuery
           
           const onDecrement = async () => {
-
             try {
               await ctx.telegram.editMessageText(chatId, message_id, undefined, TextResolver.query(--msgPos))
             } finally {
@@ -69,7 +81,6 @@ const init = async () => {
                 queue.removeListener(queue.events.decrement, onDecrement)
               }
             }
-
           }
 
           queue.on(queue.events.decrement, onDecrement)
@@ -77,9 +88,9 @@ const init = async () => {
         }
 
         queue.add({ initiator: chatId, cb: () => onQuery(question, ctx, message_id) })
-        
+
         } catch (e) {
-          console.log(e)
+          logger.error(e)
         }
       } 
     });
@@ -87,10 +98,9 @@ const init = async () => {
     bot.launch()
 
   } catch (e) {
-    console.log(e)
+    logger.error(e)
     if(attempts < 10) {
       attempts++
-
       setTimeout(init, 5000)
     }
   }

@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events'
+import { logger } from './logger.js'
 
 export type Task = {
   initiator?: number | string
@@ -40,7 +41,7 @@ export class Queue extends EventEmitter {
     const initiator = task.initiator || 'unknown'
     this.initiators[initiator] = (this.initiators[initiator] || 0) + 1
 
-    super.emit(this.events.increment, this.count)
+    this.emit(this.events.increment, this.count)
 
     this.execute()
     return this.arr.length
@@ -52,27 +53,26 @@ export class Queue extends EventEmitter {
     }
 
     const task = this.arr.shift()
-  
     try {
       if(task) {
-        super.emit(this.events.start)
+        this.emit(this.events.start)
         this.inProgress = true
         await task.cb()
-        super.emit(this.events.finish)
+        this.emit(this.events.finish)
       } else {
-        super.emit(this.events.empty)
+        this.emit(this.events.empty)
       }
     } catch(e) {
-      console.log(e)
+      logger.error(e, 'queue catch')
     } finally {
       this.inProgress = false
-
+      
       if(task) {
+        this.emit(this.events.decrement, this.count)
         this.initiators[task.initiator || 'unknown']--
       }
 
       if(this.arr.length) {
-        super.emit(this.events.decrement, this.count)
         this.execute()
       }
     }

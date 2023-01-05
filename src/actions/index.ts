@@ -1,5 +1,6 @@
-import { ChatGPTAPIBrowser } from "chatgpt";
+import { ChatGPTAPIBrowser, ChatGPTError } from "chatgpt";
 import { Context } from 'telegraf'
+import { ErrorResolver, logger } from "../utils/index.js";
 
 export class ActionsController {
   public chatApi: ChatGPTAPIBrowser
@@ -22,31 +23,35 @@ export class ActionsController {
     try {
 
       if(chatId) {
-        intId = setInterval(() => {
-          ctx.telegram.sendChatAction(chatId, 'typing').catch(() => clearInterval(intId))
+        intId = setInterval(async () => {
+          await ctx.telegram.sendChatAction(chatId, 'typing').catch(() => clearInterval(intId))
         }, 3000)
+
+        const { 
+          response, 
+          messageId: parentMessageId, 
+          conversationId 
+        } = await this.chatApi.sendMessage(question, prev)
+  
+        clearInterval(intId)
+        
+        if(response) {
+          this.conversations.set(chatId, { parentMessageId, conversationId, response })
+          await ctx.telegram.editMessageText(chatId, message_id, undefined, response, {
+            parse_mode: "Markdown",
+          })
+        }
+
       }
-      
-      const { 
-        response, 
-        messageId: parentMessageId, 
-        conversationId 
-      } = await this.chatApi.sendMessage(question, prev)
 
-      clearInterval(intId)
-
-      chatId && this.conversations.set(chatId, { parentMessageId, conversationId, response })
-
-      response && ctx.chat && ctx.telegram.editMessageText(ctx.chat.id, message_id, undefined, response, {
-        parse_mode: "Markdown",
-      })
-
-    } catch (e) {
-      if(ctx.chat) {
+    } catch (e: any) {
+      logger.error(e, 'Task inner error')
+      const errorText = ErrorResolver(e.statusCode)
+      if(chatId) {
         try {
-          ctx.telegram.editMessageText(ctx.chat.id, message_id, undefined, 'Извините. Что-то пошло не так.')
-        } catch (e) {
-          ctx.reply('Извините. Что-то пошло не так.')
+          await ctx.telegram.editMessageText(chatId, message_id, undefined, errorText)
+        } catch (_) {
+          await ctx.reply(errorText)
         }
       }
     } finally {
@@ -55,9 +60,16 @@ export class ActionsController {
   }
 
   onResetThread = async (ctx: Context) => {
-    await this.chatApi.resetThread()
-    ctx.message?.chat.id && this.conversations.delete(ctx.message.chat.id)
-    ctx.replyWithMarkdownV2("*new Conversation Started*");
+    try {
+      await Promise.all([
+        this.chatApi.resetThread(),
+        ctx.replyWithMarkdownV2("*new Conversation Started*")
+      ])
+    } catch (e) {
+      logger.error(e, 'resetThread error')
+    } finally {
+      ctx.message?.chat.id && this.conversations.delete(ctx.message.chat.id)
+    }
   }
 
 }
