@@ -4,8 +4,8 @@ import fs from 'fs';
 const postfix = new Date().toDateString()
 
 const customConsole = new Console({
-  stdout: fs.createWriteStream(`logs/info_${postfix}.txt`, { flags: 'a' }),
-  stderr: fs.createWriteStream(`logs/errors_${postfix}.txt`, { flags: 'a' }),
+  stdout: fs.createWriteStream(`${process.env.PWD}/logs/info_${postfix}.txt`, { flags: 'a' }),
+  stderr: fs.createWriteStream(`${process.env.PWD}/logs/errors_${postfix}.txt`, { flags: 'a' }),
 });
 
 export const logger = {
