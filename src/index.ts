@@ -9,8 +9,6 @@ dotenv.config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-bot.catch((err) => console.log('Error: ', err))
-
 const chatGPT = new ChatGPTAPIBrowser({
   email: process.env.OPENAI_EMAIL,
   password: process.env.OPENAI_PASSWORD,
