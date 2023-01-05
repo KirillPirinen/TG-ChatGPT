@@ -28,16 +28,6 @@ Latest commit cce6eb4 last week
 @VolanDeVovan@RainEggplant
 134 lines (99 sloc)  2.02 KB
 
-# Logs
-logs/*
-!.gitkeep
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
