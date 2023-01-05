@@ -17,12 +17,13 @@ export class ActionsController {
   ) => {
     const chatId = ctx.message?.chat.id
     const prev = chatId ? this.conversations.get(chatId) : undefined
-    let intId;
+    let intId: NodeJS.Timer | undefined;
 
     try {
+
       if(chatId) {
         intId = setInterval(() => {
-          ctx.telegram.sendChatAction(chatId, 'typing')
+          ctx.telegram.sendChatAction(chatId, 'typing').catch(() => clearInterval(intId))
         }, 3000)
       }
       
@@ -41,7 +42,13 @@ export class ActionsController {
       })
 
     } catch (e) {
-      ctx.chat && ctx.telegram.editMessageText(ctx.chat.id, message_id, undefined, 'Извините. Что-то пошло не так.')
+      if(ctx.chat) {
+        try {
+          ctx.telegram.editMessageText(ctx.chat.id, message_id, undefined, 'Извините. Что-то пошло не так.')
+        } catch (e) {
+          ctx.reply('Извините. Что-то пошло не так.')
+        }
+      }
     } finally {
       clearInterval(intId)
     }

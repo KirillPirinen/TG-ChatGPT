@@ -49,7 +49,8 @@ const init = async () => {
       const chatId = ctx.chat.id
 
       if(question) {
-        const currentQuery = queue.count
+        try {
+          const currentQuery = queue.count
 
         const { message_id } = await ctx.reply(TextResolver.query(currentQuery), {
           reply_to_message_id: ctx.message?.message_id,
@@ -61,11 +62,14 @@ const init = async () => {
           
           const onDecrement = async () => {
 
-            await ctx.telegram.editMessageText(chatId, message_id, undefined, TextResolver.query(--msgPos))
-
-            if (!msgPos) {
-              queue.removeListener(queue.events.decrement, onDecrement)
+            try {
+              await ctx.telegram.editMessageText(chatId, message_id, undefined, TextResolver.query(--msgPos))
+            } finally {
+              if (!msgPos) {
+                queue.removeListener(queue.events.decrement, onDecrement)
+              }
             }
+
           }
 
           queue.on(queue.events.decrement, onDecrement)
@@ -73,7 +77,11 @@ const init = async () => {
         }
 
         queue.add({ initiator: chatId, cb: () => onQuery(question, ctx, message_id) })
-      }
+        
+        } catch (e) {
+          console.log(e)
+        }
+      } 
     });
 
     bot.launch()
