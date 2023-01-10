@@ -1,6 +1,6 @@
 import { ChatGPTAPIBrowser } from 'chatgpt'
 import * as dotenv from 'dotenv'
-import { Queue, TextResolver, logger } from './utils/index.js';
+import { Queue, TextResolver, logger, getRandom } from './utils/index.js';
 import { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters'
 import { ActionsController } from './actions/index.js';
@@ -101,7 +101,7 @@ const init = async () => {
     logger.error(e)
     if(attempts < 10) {
       attempts++
-      setTimeout(init, 5000)
+      setTimeout(init, getRandom(5e3, 10e3))
     }
   }
 }

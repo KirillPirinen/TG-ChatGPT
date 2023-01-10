@@ -1,6 +1,6 @@
-import { ChatGPTAPIBrowser } from "chatgpt";
+import { ChatGPTAPIBrowser } from 'chatgpt';
 import { Context, TelegramError } from 'telegraf'
-import { ErrorResolver, logger } from "../utils/index.js";
+import { ErrorResolver, logger } from '../utils/index.js';
 
 export class ActionsController {
   public chatApi: ChatGPTAPIBrowser

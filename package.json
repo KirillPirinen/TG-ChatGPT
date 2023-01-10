@@ -5,14 +5,14 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsc --build && cross-env NODE_ENV=prod node dist/index.js",
+    "dev": "tsc --build && cross-env NODE_ENV=dev node dist/index.js",
     "build": "tsc --build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "chatgpt": "^3.3.11",
+    "chatgpt": "^3.3.12",
     "dotenv": "^16.0.3",
     "plural-ru": "^2.0.2",
     "puppeteer": "^19.4.1",
