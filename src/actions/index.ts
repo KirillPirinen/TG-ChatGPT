@@ -1,10 +1,10 @@
-import { ChatGPTAPIBrowser, ChatGPTError } from "chatgpt";
+import { ChatGPTAPIBrowser } from "chatgpt";
 import { Context, TelegramError } from 'telegraf'
 import { ErrorResolver, logger } from "../utils/index.js";
 
 export class ActionsController {
   public chatApi: ChatGPTAPIBrowser
-  public conversations: Map<number, { conversationId: string, parentMessageId: string, response: string }>
+  public conversations: Map<number, { conversationId: string, parentMessageId: string }>
 
   constructor(chatApi: ChatGPTAPIBrowser) {
     this.chatApi = chatApi
@@ -31,12 +31,12 @@ export class ActionsController {
           response, 
           messageId: parentMessageId, 
           conversationId 
-        } = await this.chatApi.sendMessage(question, {...prev, timeoutMs: 1e3 * 60 * 3 })
+        } = await this.chatApi.sendMessage(question.trim(), {...prev, timeoutMs: 1e3 * 60 * 3 })
   
         clearInterval(intId)
         
         if(response) {
-          this.conversations.set(chatId, { parentMessageId, conversationId, response })
+          this.conversations.set(chatId, { parentMessageId, conversationId })
           try {
             await ctx.telegram.editMessageText(chatId, message_id, undefined, response, {
               parse_mode: "Markdown",

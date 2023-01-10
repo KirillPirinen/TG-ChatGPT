@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "chatgpt": "^3.3.10",
+    "chatgpt": "^3.3.11",
     "dotenv": "^16.0.3",
     "plural-ru": "^2.0.2",
     "puppeteer": "^19.4.1",
