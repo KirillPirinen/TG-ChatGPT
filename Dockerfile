@@ -1,10 +1,23 @@
 FROM node:18.4.0
+
+RUN wget http://download.redis.io/redis-stable.tar.gz && \
+    tar xvzf redis-stable.tar.gz && \
+    cd redis-stable && \
+    make && \
+    mv src/redis-server /usr/bin/ && \
+    cd .. && \
+    rm -r redis-stable && \
+    npm install -g concurrently   
+
+EXPOSE 6379
+
 WORKDIR /app
+
 EXPOSE 3000
+
+EXPOSE 6379
+
 COPY ./ ./
-RUN wget -qO - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list && \
-    apt-get update && \
-    apt-get install -y xvfb google-chrome-stable
+
 RUN npm i pm2 -g && npm ci && npm run build 
-CMD xvfb-run --server-args="-screen 0 1024x768x24" pm2-runtime dist/index.js 
+CMD concurrently "/usr/bin/redis-server --bind '0.0.0.0'" "sleep 5s; pm2-runtime dist/index.js"

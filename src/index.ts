@@ -1,10 +1,15 @@
-import { ChatGPTAPIBrowser } from 'chatgpt'
+import { ChatGPTAPI } from 'chatgpt'
 import * as dotenv from 'dotenv'
 import { Queue, TextResolver, logger, getRandom } from './utils/index.js';
 import { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters'
 import { ActionsController } from './actions/index.js';
 import { exec } from 'child_process';
+import { createClient } from 'redis';
+import { RedisAdapter } from './utils/persistance.js';
+import { IPrevMessage } from './types/types'
+
+const redis = createClient();
 
 dotenv.config();
 
@@ -12,22 +17,22 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 
 bot.catch((err) => logger.error('error :', err))
 
-const chatGPT = new ChatGPTAPIBrowser({
-  email: process.env.OPENAI_EMAIL,
-  password: process.env.OPENAI_PASSWORD,
-  nopechaKey: process.env.NOPECHA_KEY,
+const chatGPT = new ChatGPTAPI({
+  apiKey: process.env.OPENAI_TOKEN
 })
 
-const { onResetThread, onQuery } = new ActionsController(chatGPT)
+//@ts-ignore
+const { onResetThread, onQuery } = new ActionsController(chatGPT, new RedisAdapter<IPrevMessage>(redis))
 
-const queue = new Queue(20)
+const queue = new Queue(40)
 
 let attempts = 0
 
 const init = async () => {
   logger.log('init')
   try {
-    await chatGPT.initSession()
+
+    await redis.connect()
 
     bot.command('start', ctx => ctx.reply(TextResolver.welcome));
 
@@ -99,6 +104,7 @@ const init = async () => {
 
   } catch (e) {
     logger.error(e)
+    redis.disconnect()
     if(attempts < 10) {
       attempts++
       setTimeout(init, getRandom(5e3, 10e3))
@@ -106,7 +112,14 @@ const init = async () => {
   }
 }
 
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+process.once('SIGINT', () => {
+  bot.stop('SIGINT')
+  redis.disconnect()
+});
+
+process.once('SIGTERM', () => {
+  bot.stop('SIGTERM')
+  redis.disconnect()
+});
 
 init()

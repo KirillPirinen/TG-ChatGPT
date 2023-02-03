@@ -1,14 +1,21 @@
-import { ChatGPTAPIBrowser } from 'chatgpt';
+import { ChatGPTAPI } from 'chatgpt';
 import { Context, TelegramError } from 'telegraf'
 import { ErrorResolver, logger } from '../utils/index.js';
+import { IPrevMessage } from '../types/types'
+
+interface IPersistApi {
+  set: (string: string, object: IPrevMessage) => Promise<any>
+  get: (string: string) => Promise<IPrevMessage>
+  delete: (string: string) => Promise<any>
+}
 
 export class ActionsController {
-  public chatApi: ChatGPTAPIBrowser
-  public conversations: Map<number, { conversationId: string, parentMessageId: string }>
+  public chatApi: ChatGPTAPI
+  public persistApi: IPersistApi
 
-  constructor(chatApi: ChatGPTAPIBrowser) {
+  constructor(chatApi: ChatGPTAPI, persistApi: IPersistApi) {
     this.chatApi = chatApi
-    this.conversations = new Map()
+    this.persistApi = persistApi
   }
 
    onQuery = async (
@@ -17,7 +24,8 @@ export class ActionsController {
     message_id: number
   ) => {
     const chatId = ctx.message?.chat.id
-    const prev = chatId ? this.conversations.get(chatId) : undefined
+    const prev = chatId ? await this.persistApi.get(String(chatId)) : undefined
+
     let intId: NodeJS.Timer | undefined;
 
     try {
@@ -28,23 +36,23 @@ export class ActionsController {
         }, 3000)
 
         const { 
-          response, 
-          messageId: parentMessageId, 
+          text, 
+          id: parentMessageId, 
           conversationId 
         } = await this.chatApi.sendMessage(question.trim(), {...prev, timeoutMs: 1e3 * 60 * 3 })
   
         clearInterval(intId)
         
-        if(response) {
-          this.conversations.set(chatId, { parentMessageId, conversationId })
+        if(text) {
+          conversationId && await this.persistApi.set(String(chatId), { parentMessageId, conversationId })
           try {
-            await ctx.telegram.editMessageText(chatId, message_id, undefined, response, {
+            await ctx.telegram.editMessageText(chatId, message_id, undefined, text, {
               parse_mode: "Markdown",
             })
           } catch (e) {
             if(e instanceof TelegramError && e.message.includes('parse')) {
               try {
-                await ctx.telegram.editMessageText(chatId, message_id, undefined, response)
+                await ctx.telegram.editMessageText(chatId, message_id, undefined, text)
               } catch (innerError) {
                 throw innerError
               }
@@ -73,14 +81,10 @@ export class ActionsController {
 
   onResetThread = async (ctx: Context) => {
     try {
-      await Promise.all([
-        this.chatApi.resetThread(),
-        ctx.replyWithMarkdownV2("*new Conversation Started*")
-      ])
+      ctx.message?.chat.id && await this.persistApi.delete(String(ctx.message.chat.id))
+      await ctx.replyWithMarkdownV2("*new Conversation Started*")
     } catch (e) {
       logger.error(e, 'resetThread error')
-    } finally {
-      ctx.message?.chat.id && this.conversations.delete(ctx.message.chat.id)
     }
   }
 
