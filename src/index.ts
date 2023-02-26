@@ -1,4 +1,4 @@
-import { ChatGPTAPI } from 'chatgpt'
+import { ChatGPTUnofficialProxyAPI } from 'chatgpt'
 import * as dotenv from 'dotenv'
 import { Queue, TextResolver, logger, getRandom } from './utils/index.js';
 import { Telegraf } from 'telegraf';
@@ -8,21 +8,17 @@ import { exec } from 'child_process';
 import { createClient } from 'redis';
 import { RedisAdapter } from './utils/persistance.js';
 import { IPrevMessage } from './types/types'
-
-const redis = createClient();
+import Authenticator from 'openai-token'
 
 dotenv.config();
+
+const auth = new Authenticator(process.env.OPENAI_EMAIL, process.env.OPENAI_PASSWORD);
+
+const redis = createClient();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 bot.catch((err) => logger.error('error :', err))
-
-const chatGPT = new ChatGPTAPI({
-  apiKey: process.env.OPENAI_TOKEN
-})
-
-//@ts-ignore
-const { onResetThread, onQuery } = new ActionsController(chatGPT, new RedisAdapter<IPrevMessage>(redis))
 
 const queue = new Queue(40)
 
@@ -31,8 +27,20 @@ let attempts = 0
 const init = async () => {
   logger.log('init')
   try {
+    await auth.begin()
+
+    const accessToken = await auth.getAccessToken()
 
     await redis.connect()
+
+    const chatGPT = new ChatGPTUnofficialProxyAPI({ accessToken })
+    
+    const onReloadAccessToken = async () => {
+      chatGPT.accessToken = await auth.getAccessToken();
+    }
+
+    //@ts-ignore
+    const { onResetThread, onQuery } = new ActionsController(chatGPT, new RedisAdapter<IPrevMessage>(redis), onReloadAccessToken)
 
     bot.command('start', ctx => ctx.reply(TextResolver.welcome));
 

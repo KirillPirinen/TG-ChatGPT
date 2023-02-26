@@ -1,4 +1,4 @@
-import { ChatGPTAPI } from 'chatgpt';
+import { ChatGPTAPI, ChatMessage } from 'chatgpt';
 import { Context, TelegramError } from 'telegraf'
 import { ErrorResolver, logger } from '../utils/index.js';
 import { IPrevMessage } from '../types/types'
@@ -12,8 +12,10 @@ interface IPersistApi {
 export class ActionsController {
   public chatApi: ChatGPTAPI
   public persistApi: IPersistApi
+  public reloadToken: () => Promise<void>
 
-  constructor(chatApi: ChatGPTAPI, persistApi: IPersistApi) {
+  constructor(chatApi: ChatGPTAPI, persistApi: IPersistApi, onReloadAccessToken: () => Promise<void>) {
+    this.reloadToken = onReloadAccessToken
     this.chatApi = chatApi
     this.persistApi = persistApi
   }
@@ -35,15 +37,24 @@ export class ActionsController {
           await ctx.telegram.sendChatAction(chatId, 'typing').catch(() => clearInterval(intId))
         }, 3000)
 
-        const { 
-          text, 
-          id: parentMessageId, 
-          conversationId 
-        } = await this.chatApi.sendMessage(question.trim(), {...prev, timeoutMs: 1e3 * 60 * 3 })
-  
+        let answer: ChatMessage
+
+        try {
+          answer = await this.chatApi.sendMessage(question.trim(), {...prev, timeoutMs: 1e3 * 60 * 3 })
+        } catch (e) {
+          await this.reloadToken()
+          answer = await this.chatApi.sendMessage(question.trim(), {...prev, timeoutMs: 1e3 * 60 * 3 })
+        }
+        
         clearInterval(intId)
         
-        if(text) {
+        if(answer.text) {
+          const { 
+            text, 
+            id: parentMessageId, 
+            conversationId 
+          } = answer
+
           conversationId && await this.persistApi.set(String(chatId), { parentMessageId, conversationId })
           try {
             await ctx.telegram.editMessageText(chatId, message_id, undefined, text, {
