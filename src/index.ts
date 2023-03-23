@@ -12,8 +12,8 @@ import ChatGPT from './utils/chatGPT.js'
 dotenv.config();
 
 const chatGPT = new ChatGPT([
-  'https://chat.duti.tech/api/conversation',
-  'https://gpt.pawan.krd/backend-api/conversation'
+  'https://bypass.duti.tech/api/conversation',
+  'https://gpt.pawan.krd/backend-api/conversation',
 ])
 
 const redis = createClient();
