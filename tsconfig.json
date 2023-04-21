@@ -35,5 +35,5 @@
     "noUnusedParameters": false,
     "lib": ["DOM", "esnext"],
     "importHelpers": false
-  }
+  },
 }

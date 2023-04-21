@@ -1,11 +1,11 @@
 import { ChatGPTUnofficialProxyAPI, SendMessageBrowserOptions } from 'chatgpt'
-import Authenticator from 'openai-token'
+import { getAuthToken } from './auth.js'
+import { logger } from './logger.js'
 
 class ChatGPT {
   readonly proxies: Array<string>
   private clients: Array<ChatGPTUnofficialProxyAPI>
   private priorClient: ChatGPTUnofficialProxyAPI | undefined
-  private auth: Authenticator | undefined
 
   constructor(proxies: Array<string>) {
     this.proxies = proxies
@@ -14,10 +14,8 @@ class ChatGPT {
   }
 
   init = async () => {
-      this.auth = new Authenticator(process.env.OPENAI_EMAIL, process.env.OPENAI_PASSWORD);
 
-      await this.auth.begin()
-      const accessToken = await this.auth.getAccessToken()
+      const accessToken = await getAuthToken()
 
       this.clients = this.proxies.map(apiReverseProxyUrl => new ChatGPTUnofficialProxyAPI({ 
         accessToken,
@@ -28,7 +26,7 @@ class ChatGPT {
   }
 
   updateToken = async () => {
-    const accessToken = await this.auth!.getAccessToken()
+    const accessToken = await getAuthToken()
     this.clients.forEach(client => {
       client.accessToken = accessToken
     })
@@ -37,7 +35,8 @@ class ChatGPT {
   sendMessage = async (question: string, params: SendMessageBrowserOptions) => {
       try {
         return await this.priorClient!.sendMessage(question, params)
-      } catch {
+      } catch(e) {
+        logger.error('sendMessage error', e)
         await this.updateToken()
 
         for(let i = 0; i < this.clients.length; i++) {

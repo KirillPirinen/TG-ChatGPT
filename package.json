@@ -5,22 +5,23 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsc --build && cross-env NODE_ENV=dev node dist/index.js",
-    "build": "tsc --build"
+    "dev": "tsc --build && cp -r auth dist && cross-env NODE_ENV=dev node dist/index.js",
+    "build": "tsc --build && cp -r auth dist"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "chatgpt": "^5.1.2",
+    "chatgpt": "^5.2.2",
     "dotenv": "^16.0.3",
-    "openai-token": "^1.0.0",
     "plural-ru": "^2.0.2",
     "puppeteer": "^19.4.1",
     "redis": "^4.6.4",
-    "telegraf": "^4.11.2"
+    "telegraf": "^4.11.2",
+    "tough-cookie": "^4.1.2"
   },
   "devDependencies": {
+    "@types/tough-cookie": "^4.0.2",
     "cross-env": "^7.0.3",
     "ts-node": "^10.9.1",
     "typescript": "^4.9.4"
