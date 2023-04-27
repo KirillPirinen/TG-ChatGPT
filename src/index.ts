@@ -12,8 +12,8 @@ import ChatGPT from './utils/chatGPT.js'
 dotenv.config();
 
 const chatGPT = new ChatGPT([
-  'https://api.pawan.krd/backend-api/conversation',
   'https://ai.fakeopen.com/api/conversation',
+  'https://api.pawan.krd/backend-api/conversation',
 ])
 
 const redis = createClient();
@@ -106,7 +106,7 @@ const init = async () => {
     bot.launch()
 
   } catch (e) {
-    logger.error(e)
+    logger.error('init error', e)
     redis.disconnect()
     if(attempts < 10) {
       attempts++
