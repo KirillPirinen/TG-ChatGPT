@@ -6,10 +6,7 @@ RUN wget http://download.redis.io/redis-stable.tar.gz && \
     make && \
     mv src/redis-server /usr/bin/ && \
     cd .. && \
-    rm -r redis-stable && \
-    npm install -g concurrently   
-
-EXPOSE 6379
+    rm -r redis-stable   
 
 WORKDIR /app
 
@@ -19,5 +16,6 @@ EXPOSE 6379
 
 COPY ./ ./
 
-RUN npm i pm2 -g && npm ci && npm run build 
+RUN npm install -g concurrently && npm i pm2 -g && npm ci && npm run build
+
 CMD concurrently "/usr/bin/redis-server --bind '0.0.0.0'" "sleep 5s; pm2-runtime dist/index.js"

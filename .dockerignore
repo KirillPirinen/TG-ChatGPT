@@ -1,33 +1,3 @@
-Skip to content
-Search or jump to…
-Pull requests
-Issues
-Codespaces
-Marketplace
-Explore
- 
-@KirillPirinen 
-RainEggplant
-/
-chatgpt-telegram-bot
-Public
-Code
-Issues
-Pull requests
-Actions
-Projects
-Security
-Insights
-chatgpt-telegram-bot/.dockerignore
-@VolanDeVovan
-VolanDeVovan Add Dockerfile and instructions for headless server (#1)
-…
-Latest commit cce6eb4 last week
- History
- 2 contributors
-@VolanDeVovan@RainEggplant
-134 lines (99 sloc)  2.02 KB
-
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -146,21 +116,3 @@ dist
 
 # Misc
 .DS_Store
-Footer
-© 2023 GitHub, Inc.
-Footer navigation
-Terms
-Privacy
-Security
-Status
-Docs
-Contact GitHub
-Pricing
-API
-Training
-Blog
-About
-chatgpt-telegram-bot/.dockerignore at master · RainEggplant/chatgpt-telegram-bot
-
-errors.txt
-info.txt
