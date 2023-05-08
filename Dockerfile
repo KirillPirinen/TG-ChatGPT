@@ -27,6 +27,4 @@ RUN npm ci
 
 RUN npm run build
 
-# COPY --from=auth /goapp/OpenAIAuth/auth /app/dist
-
 CMD concurrently "/usr/bin/redis-server --bind '0.0.0.0'" "sleep 5s; npm run start"
